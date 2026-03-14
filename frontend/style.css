@@ -1,0 +1,254 @@
+body {
+    font-family: 'Inter', system-ui, sans-serif;
+    scroll-behavior: smooth;
+    background-color: #0f172a !important; /* AWS Midnight / Dark Slate */
+    color: #f8fafc !important; /* Off-white for readability */
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+/* AWS Midnight / Dark Slate overrides for specific layout elements */
+.bg-background-dark, .bg-surface-dark {
+    background-color: #0f172a !important;
+}
+
+/* Glassmorphism for sidebar & chat input container */
+.glass-panel, aside#main-sidebar, .chat-input-container {
+    background: rgba(15, 23, 42, 0.7) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+aside#main-sidebar {
+    border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+aside#main-sidebar .sidebar-item:hover {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.sidebar-item-active {
+    background-color: rgba(255, 153, 0, 0.1) !important;
+    color: #ff9900 !important;
+}
+
+.sidebar-item-active span:first-child {
+    font-variation-settings: 'FILL' 1;
+}
+
+/* 
+ * Primary Accent: Amazon Orange (#ff9900) for CTA buttons 
+ */
+.bg-primary {
+    background-color: #ff9900 !important;
+    color: #fff !important;
+}
+
+.text-primary {
+    color: #ff9900 !important;
+}
+
+.border-primary {
+    border-color: #ff9900 !important;
+}
+
+/* 
+ * Nova Glow for AI Chat Bubbles to represent the Nova 'spark'
+ */
+.ai-chat-bubble {
+    background: linear-gradient(135deg, #ec4899, #8b5cf6) !important;
+    border-radius: 15px !important;
+    color: #fff !important;
+    border: none !important;
+}
+
+.user-chat-bubble {
+    border-radius: 15px !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Sharp and modern send button */
+.send-btn {
+    border-radius: 4px !important; /* Sharp corners */
+    background-color: #ff9900 !important;
+}
+
+/* Add a glowing 'Nova' spark icon styling */
+.nova-spark-icon {
+    background: linear-gradient(135deg, #ec4899, #8b5cf6);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 10px rgba(236, 72, 153, 0.5);
+    font-size: 1.2rem;
+    vertical-align: middle;
+}
+
+.glow-blue {
+    box-shadow: 0 0 20px -5px rgba(255, 153, 0, 0.3) !important; /* Changed to orange glow */
+}
+
+.glow-magenta {
+    box-shadow: 0 0 20px -5px rgba(236, 72, 153, 0.4) !important;
+}
+
+.bg-gradient-dark {
+    background: radial-gradient(circle at top right, rgba(236, 72, 153, 0.08), transparent 40%),
+        radial-gradient(circle at bottom left, rgba(139, 92, 246, 0.08), transparent 40%) !important;
+}
+
+.waveform-bar {
+    width: 3px;
+    background: #ff9900 !important;
+    border-radius: 99px;
+}
+
+/* Scrollbar styling */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 153, 0, 0.4);
+    border-radius: 10px;
+    transition: background 0.3s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 153, 0, 0.8);
+}
+
+.custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 153, 0, 0.4) transparent;
+}
+
+/* SPA visibility classes */
+.view-hidden {
+    display: none !important;
+}
+
+/* ============================================================
+   INTERACTIVITY & BUTTON ENHANCEMENTS
+   ============================================================ */
+
+/* Global: All buttons should show pointer cursor and smooth transitions */
+button, [role="button"], [onclick], .sidebar-item {
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+}
+
+/* Hover scale-up for interactive buttons (not inline icon-only buttons) */
+button:hover:not(:disabled),
+[onclick]:hover {
+    transform: scale(1.02);
+}
+
+/* Stronger hover for CTA/primary buttons */
+button[style*="linear-gradient"]:hover:not(:disabled),
+.bg-primary:hover:not(:disabled) {
+    transform: scale(1.05) !important;
+    filter: brightness(1.15);
+}
+
+/* Disabled button styling */
+button:disabled, button[disabled] {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+}
+
+/* Active press effect */
+button:active:not(:disabled) {
+    transform: scale(0.97) !important;
+}
+
+/* Sidebar z-index safety */
+aside#main-sidebar {
+    z-index: 50 !important;
+}
+
+/* Ensure main content doesn't overlap sidebar */
+.view-wrapper, main {
+    position: relative;
+    z-index: 1;
+}
+
+/* ============================================================
+   ASPECT RATIO CLASSES FOR NOVA CANVAS
+   ============================================================ */
+.aspect-16-9 {
+    aspect-ratio: 16 / 9 !important;
+}
+
+.aspect-1-1 {
+    aspect-ratio: 1 / 1 !important;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.aspect-9-16 {
+    aspect-ratio: 9 / 16 !important;
+    max-width: 320px;
+    margin: 0 auto;
+}
+
+/* Active ratio button glow */
+.ratio-btn-active {
+    background-color: #d946ef !important;
+    color: #fff !important;
+    border-color: #d946ef !important;
+    box-shadow: 0 0 16px -3px rgba(217, 70, 239, 0.5) !important;
+}
+
+/* ============================================================
+   TOAST NOTIFICATION SYSTEM
+   ============================================================ */
+.nova-toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 9999;
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    border: 1px solid rgba(255, 153, 0, 0.3);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4), 0 0 20px -5px rgba(255, 153, 0, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: toastSlideIn 0.4s ease-out, toastFadeOut 0.4s ease-in 2.6s forwards;
+    backdrop-filter: blur(8px);
+}
+
+.nova-toast .toast-icon {
+    font-size: 20px;
+    color: #ff9900;
+}
+
+@keyframes toastSlideIn {
+    from {
+        transform: translateY(20px) scale(0.95);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes toastFadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; transform: translateY(-10px); }
+}
