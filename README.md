@@ -20,7 +20,7 @@ Built for the **Amazon Nova Hackathon 2026**. #AmazonNova
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/your-username/faceless-ai-studio.git
+   git clone https://github.com/coddies/faceless-ai-studio.git
    cd faceless-ai-studio
    ```
 
