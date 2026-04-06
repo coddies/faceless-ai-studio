@@ -1,53 +1,53 @@
 import boto3
 import json
+import os
+import botocore.config
+from dotenv import load_dotenv
 
-bedrock = boto3.client('bedrock-runtime', region_name='us-east-1')
+# .env file se keys load karna
+load_dotenv()
 
-def test_nova_pro():
-    model_id = "amazon.nova-pro-v1:0"
-    payload = {
-        "messages": [
-            {"role": "user", "content": [{"text": "Hello, simply say Hi"}]}
-        ]
-    }
+ACCESS_KEY = os.getenv('AWS_ACCESS_KEY_ID')
+SECRET_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+
+# Client setup with .env keys and Retry Logic
+cfg = botocore.config.Config(retries={'max_attempts': 10, 'mode': 'standard'})
+
+client = boto3.client(
+    service_name='bedrock-runtime',
+    region_name='us-east-1',
+    aws_access_key_id=ACCESS_KEY,
+    aws_secret_access_key=SECRET_KEY,
+    config=cfg
+)
+
+def test_nova():
+    print("Testing Nova with .env credentials...")
     
-    print("Testing converse API for Nova Pro...")
-    try:
-        response = bedrock.converse(
-            modelId=model_id,
-            messages=payload["messages"]
-        )
-        print("Success!", response['output']['message']['content'][0]['text'])
-    except Exception as e:
-        print("Converse failed:", e)
-
-def test_nova_canvas():
-    model_id = "amazon.nova-canvas-v1:0"
-    body = {
+    body = json.dumps({
         "taskType": "TEXT_IMAGE",
-        "textToImageParams": {
-            "text": "A beautiful sunset over the mountains"
-        },
+        "textToImageParams": {"text": "A high-tech coding robot, 4k, cinematic"},
         "imageGenerationConfig": {
             "numberOfImages": 1,
-            "width": 1024,
-            "height": 1024,
+            "height": 512,
+            "width": 512,
             "cfgScale": 8.0
         }
-    }
-    print("\nTesting invoke_model for Nova Canvas...")
+    })
+
     try:
-        response = bedrock.invoke_model(
-            modelId=model_id,
-            body=json.dumps(body),
-            accept="application/json",
-            contentType="application/json"
-        )
-        res_body = json.loads(response['body'].read().decode('utf-8'))
-        print("Success! Got images:", len(res_body.get('images', [])))
+        response = client.invoke_model(modelId="amazon.nova-canvas-v1:0", body=body)
+        response_body = json.loads(response.get('body').read())
+        
+        # Check if image is in response
+        if "images" in response_body:
+            print("SUCCESS! Nova Canvas ne response de diya hai.")
+            print(f"Base64 Preview: {response_body['images'][0][:50]}...")
+        else:
+            print("SUCCESS but no image found in response.")
+            
     except Exception as e:
-        print("Invoke failed:", e)
+        print(f"FAILED: {str(e)}")
 
-test_nova_pro()
-test_nova_canvas()
-
+if __name__ == "__main__":
+    test_nova()

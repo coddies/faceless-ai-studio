@@ -313,7 +313,10 @@ function copySpecificTagKeywordData(elementId) {
 async function regenerateThumbnail(style) {
     if (!fullVideoKit || !fullVideoKit.title) return;
     const btn = document.getElementById('regenerate-thumbnail-btn');
-    if (btn) { btn.disabled = true; btn.innerHTML = '<span class="material-symbols-outlined animate-spin">progress_activity</span> Regenerating…'; }
+    if (btn) { 
+        btn.disabled = true; 
+        btn.innerHTML = '<span class="material-symbols-outlined animate-spin">progress_activity</span> Processing (AWS might retry)...'; 
+    }
     try {
         const res = await fetch('/api/regenerate-thumbnail', {
             method: 'POST',
@@ -880,7 +883,7 @@ async function generateThumbnailDataOnly(event) {
 
     const btn = event.currentTarget;
     const originalText = btn.innerHTML;
-    btn.innerHTML = `<span class="material-symbols-outlined animate-spin">cyclone</span> Generating Thumbnail...`;
+    btn.innerHTML = `<span class="material-symbols-outlined animate-spin">cyclone</span> Processing (AWS might retry)...`;
     btn.disabled = true;
 
     try {
@@ -1140,8 +1143,8 @@ async function generateScenesFromScript() {
     grid.innerHTML = `
         <div class="w-full py-20 flex flex-col items-center justify-center border-2 border-dashed border-primary/30 rounded-2xl bg-primary/5">
             <span class="material-symbols-outlined text-6xl text-primary mb-4 animate-spin">cyclone</span>
-            <h3 class="text-xl font-bold text-white">Generating Scenes...</h3>
-            <p class="text-sm text-slate-400 mt-2">AI is analyzing your script and rendering cinematic shots.</p>
+            <h3 class="text-xl font-bold text-white">Processing Scenes...</h3>
+            <p class="text-sm text-slate-400 mt-2">AI is rendering shots. AWS may retry if busy (10-15s)...</p>
         </div>
     `;
 

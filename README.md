@@ -19,28 +19,42 @@ Built for the **Amazon Nova Hackathon 2026**. #AmazonNova
 ## 🛠️ Local Setup
 
 1. **Clone the repository**:
+
    ```bash
    git clone https://github.com/coddies/faceless-ai-studio.git
    cd faceless-ai-studio
    ```
 
 2. **Environment Variables**:
-   Update your API keys. Copy `.env.example` to `.env` and fill in your credentials:
+
+   Create a `.env` file in the `backend/` directory based on `.env.example`.
+
+   **Windows**:
+
+   ```powershell
+   copy .env.example backend\.env
+   ```
+
+   **Linux/Mac**:
+
    ```bash
-   cp .env.example .env
+   cp .env.example backend/.env
    ```
 
 3. **Install Dependencies**:
+
    ```bash
    cd backend
    pip install -r requirements.txt
    ```
 
 4. **Run the Server**:
+
    ```bash
    python main.py
    ```
-   Open `http://localhost:8000` in your browser.
+
+   Open [http://localhost:8000](http://localhost:8000) in your browser.
 
 ---
 
@@ -48,7 +62,8 @@ Built for the **Amazon Nova Hackathon 2026**. #AmazonNova
 
 This project is submitted for the **Amazon Nova Hackathon**.
 
-**Submitted to judges at:**
+**Submitted to judges at**:
+
 - `testing@devpost.com`
 - `Amazon-Nova-hackathon@amazon.com`
 
@@ -58,4 +73,5 @@ This project is submitted for the **Amazon Nova Hackathon**.
 ---
 
 ## ⚖️ License
+
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

@@ -854,18 +854,44 @@ Nova AI:"""
 
 @app.post("/api/generate-audio")
 async def generate_audio(req: AudioRequest):
-    try:
-        polly = boto3.client('polly', region_name=os.getenv("AWS_REGION", "us-east-1"))
-        response = polly.synthesize_speech(
-            Text=req.text[:3000],
-            OutputFormat='mp3',
-            VoiceId=req.voice_id
-        )
-        audio_bytes = response['AudioStream'].read()
-        audio_b64 = base64.b64encode(audio_bytes).decode('utf-8')
-        return {"audio_base64": audio_b64, "format": "mp3"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    """
+    Generate audio using AWS Polly with regional fallback to us-west-2 if throttling occurs.
+    """
+    regions = [os.getenv("AWS_REGION", "us-east-1"), "us-west-2"]
+    last_err = None
+
+    for region in regions:
+        try:
+            polly = boto3.client('polly', region_name=region)
+            response = polly.synthesize_speech(
+                Text=req.text[:3000],
+                OutputFormat='mp3',
+                VoiceId=req.voice_id
+            )
+            audio_bytes = response['AudioStream'].read()
+            audio_b64 = base64.b64encode(audio_bytes).decode('utf-8')
+            
+            if region != regions[0]:
+                print(f"[main] AWS Polly fallback success in {region} ✅")
+            
+            return {
+                "audio_base64": audio_b64, 
+                "format": "mp3",
+                "region_used": region
+            }
+        except Exception as e:
+            last_err = e
+            err_str = str(e)
+            if "ThrottlingException" in err_str or "LimitExceededException" in err_str:
+                print(f"[main] AWS Polly throttled in {region}. Trying fallback...")
+                continue
+            # If it's a different error (like creds), don't bother retrying in another region
+            break
+
+    # If we reached here, both or the primary failed
+    error_msg = f"AWS Polly is currently unavailable due to high demand (Throttling). Please try again in a few minutes. Original error: {str(last_err)}"
+    print(f"[main] AWS Polly Error: {error_msg}")
+    raise HTTPException(status_code=503, detail=error_msg)
 
 
 @app.post("/api/generate-scenes")
@@ -1074,8 +1100,17 @@ async def clear_history(session_id: str = "default_session"):
         conn.close()
 
 
+@app.get("/api/health")
+async def health_check():
+    return {"status": "ok", "environment": os.getenv("VERCEL", "local")}
+
 # Frontend Serving
+# In Vercel deployment, Vercel routes / to /frontend/index.html automatically via vercel.json.
+# This code remains for local development (python backend/main.py) and as a fallback.
 frontend_path = os.path.join(os.path.dirname(__file__), "..", "frontend")
+if not os.path.exists(frontend_path):
+    # Try current directory if we are running in a flattened entry point
+    frontend_path = os.path.join(os.getcwd(), "frontend")
 
 app.mount("/static", StaticFiles(directory=frontend_path), name="static")
 
