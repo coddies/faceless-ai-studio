@@ -19,6 +19,7 @@ from typing import Any, Optional
 from nova_client import call_groq, call_nova_pro, call_nova_canvas, call_nova_sonic
 
 app = FastAPI(title="Faceless AI Studio API")
+# Deployment Trigger: Updating environment variables for Vercel
 
 def get_db():
     try:
