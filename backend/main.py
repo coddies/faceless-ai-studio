@@ -9,12 +9,14 @@ import random
 import json
 import base64
 import boto3
+import edge_tts
+from botocore.config import Config
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from datetime import datetime, timedelta
 import uuid
 from typing import Any, Optional
-from nova_client import call_groq, call_nova_pro, call_nova_canvas
+from nova_client import call_groq, call_nova_pro, call_nova_canvas, call_nova_sonic
 
 app = FastAPI(title="Faceless AI Studio API")
 
@@ -636,7 +638,7 @@ Rules:
             "thumbnail_url": thumbnail_url,
             "thumbnail_prompt": thumb_prompt,
             "scenes": scenes_result["scenes"],
-            "scene_prompts": scenes_result["scene_prompts"],
+            "scene_prompts": scenes_result.get("scene_prompts", []),
             "warnings": scenes_result["warnings"],
             "script_content": script_content_val,
             "voiceover": voice_settings,
@@ -851,46 +853,58 @@ Nova AI:"""
         raise HTTPException(status_code=500, detail=str(e))
 
 
-
 @app.post("/api/generate-audio")
 async def generate_audio(req: AudioRequest):
     """
-    Generate audio using AWS Polly with regional fallback to us-west-2 if throttling occurs.
+    Generate audio using Bedrock's Nova Sonic (us-east-1) as primary, with a 
+    direct fallback to Edge-TTS for stability and high quality.
     """
-    regions = [os.getenv("AWS_REGION", "us-east-1"), "us-west-2"]
-    last_err = None
-
-    for region in regions:
-        try:
-            polly = boto3.client('polly', region_name=region)
-            response = polly.synthesize_speech(
-                Text=req.text[:3000],
-                OutputFormat='mp3',
-                VoiceId=req.voice_id
-            )
-            audio_bytes = response['AudioStream'].read()
-            audio_b64 = base64.b64encode(audio_bytes).decode('utf-8')
-            
-            if region != regions[0]:
-                print(f"[main] AWS Polly fallback success in {region} ✅")
-            
+    # 1. Try NOVA SONIC (Bedrock us-east-1)
+    try:
+        print("[main] Attempting Nova Sonic (us-east-1)...")
+        # We use a custom call to ensure we target us-east-1 specifically
+        audio_b64 = call_nova_sonic(req.text)
+        if audio_b64:
             return {
                 "audio_base64": audio_b64, 
                 "format": "mp3",
-                "region_used": region
+                "engine_used": "nova-sonic"
             }
-        except Exception as e:
-            last_err = e
-            err_str = str(e)
-            if "ThrottlingException" in err_str or "LimitExceededException" in err_str:
-                print(f"[main] AWS Polly throttled in {region}. Trying fallback...")
-                continue
-            # If it's a different error (like creds), don't bother retrying in another region
-            break
+    except Exception as e:
+        print(f"[main] Nova Sonic failed: {e}. Switching to Edge-TTS fallback...")
 
-    # If we reached here, both or the primary failed
-    error_msg = f"AWS Polly is currently unavailable due to high demand (Throttling). Please try again in a few minutes. Original error: {str(last_err)}"
-    print(f"[main] AWS Polly Error: {error_msg}")
+    # 2. FINAL EMERGENCY FALLBACK: EDGE-TTS (No Keys/Permissions Needed)
+    try:
+        print("[main] Attempting Edge-TTS emergency fallback...")
+        # Map some common voice IDs to high-quality Edge-TTS voices
+        voice = "en-US-EmmaMultilingualNeural" 
+        if "Matthew" in (req.voice_id or ""):
+            voice = "en-US-ChristopherNeural"
+        
+        async def generate_edge_audio():
+            communicate = edge_tts.Communicate(req.text[:3000], voice)
+            audio_data = b""
+            async for chunk in communicate.stream():
+                if chunk["type"] == "audio":
+                    audio_data += chunk["data"]
+            return audio_data
+
+        edge_audio_bytes = await generate_edge_audio()
+        if edge_audio_bytes:
+            audio_b64 = base64.b64encode(edge_audio_bytes).decode('utf-8')
+            print("[main] Edge-TTS emergency fallback success ✅")
+            return {
+                "audio_base64": audio_b64, 
+                "format": "mp3",
+                "engine_used": "edge-tts",
+                "status": "fallback_success"
+            }
+    except Exception as e:
+        print(f"[main] Edge-TTS failed: {e}")
+
+    # Final Failure
+    error_msg = "All audio services failed. Please check your internet connection."
+    print(f"[main] Global Audio Failure: {error_msg}")
     raise HTTPException(status_code=503, detail=error_msg)
 
 
@@ -1104,13 +1118,19 @@ async def clear_history(session_id: str = "default_session"):
 async def health_check():
     return {"status": "ok", "environment": os.getenv("VERCEL", "local")}
 
-# Frontend Serving
-# In Vercel deployment, Vercel routes / to /frontend/index.html automatically via vercel.json.
-# This code remains for local development (python backend/main.py) and as a fallback.
-frontend_path = os.path.join(os.path.dirname(__file__), "..", "frontend")
+# Frontend Serving Logic (Optimized for Windows/Local/Vercel)
+# 1. Determine absolute root path of the project
+current_dir = os.path.dirname(os.path.abspath(__file__))
+# 2. Check if we're in 'backend' or 'api' subfolders
+if os.path.basename(current_dir) in ['backend', 'api']:
+    project_root = os.path.dirname(current_dir)
+else:
+    project_root = current_dir
+
+frontend_path = os.path.join(project_root, "frontend")
+
 if not os.path.exists(frontend_path):
-    # Try current directory if we are running in a flattened entry point
-    frontend_path = os.path.join(os.getcwd(), "frontend")
+    print(f"CRITICAL WARNING: Frontend folder not found at {frontend_path}")
 
 app.mount("/static", StaticFiles(directory=frontend_path), name="static")
 
@@ -1118,7 +1138,7 @@ app.mount("/static", StaticFiles(directory=frontend_path), name="static")
 async def serve_frontend():
     index_file = os.path.join(frontend_path, "index.html")
     if not os.path.exists(index_file):
-        raise HTTPException(status_code=404, detail="index.html not found in frontend folder")
+        raise HTTPException(status_code=404, detail=f"index.html not found in {frontend_path}")
     return FileResponse(index_file)
 
 @app.get("/{file_path:path}")
@@ -1130,4 +1150,9 @@ async def serve_static_root(file_path: str):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+    # Move to port 5106 to avoid common Windows conflicts like 8000/5000
+    print("\n" + "="*50)
+    print("🚀 NOVA AI STUDIO IS STARTING!")
+    print("🔗 ACCESS THE FRONTEND AT: http://127.0.0.1:5106")
+    print("="*50 + "\n")
+    uvicorn.run("main:app", host="127.0.0.1", port=5106, reload=False)

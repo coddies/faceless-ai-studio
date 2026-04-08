@@ -252,3 +252,120 @@ aside#main-sidebar {
     from { opacity: 1; }
     to { opacity: 0; transform: translateY(-10px); }
 }
+
+/* ============================================================
+   HISTORY MODAL & ITEM STYLES
+   ============================================================ */
+#history-modal.hidden {
+    display: none !important;
+}
+
+#history-modal:not(.hidden) {
+    display: flex !important;
+}
+
+.history-item {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    padding: 16px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.history-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(37, 106, 244, 0.3);
+    transform: translateY(-2px);
+}
+
+.history-item-active {
+    background: rgba(37, 106, 244, 0.1) !important;
+    border-color: rgba(37, 106, 244, 0.5) !important;
+}
+
+.delete-history-btn {
+    opacity: 0;
+    transition: all 0.2s ease;
+}
+
+.history-item:hover .delete-history-btn {
+    opacity: 1;
+}
+
+@keyframes modalFadeIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+#history-modal .relative {
+    animation: modalFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ============================================================
+   RESPONSIVE OVERRIDES & MOBILE SIDEBAR
+   ============================================================ */
+
+/* Mobile Sidebar & Overlay states */
+aside#main-sidebar.sidebar-open {
+    transform: translateX(0) !important;
+}
+
+#sidebar-overlay.active {
+    display: block !important;
+    opacity: 1 !important;
+}
+
+/* Chat area responsiveness */
+@media (max-width: 768px) {
+    #chat-history {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+    }
+    
+    .ai-chat-bubble, .user-chat-bubble {
+        max-width: 95% !important;
+    }
+
+    #chat-input-container {
+        padding: 1rem !important;
+    }
+
+    /* Stack suggestions on mobile */
+    #chat-input-container .flex.gap-3 {
+        padding-bottom: 0.5rem;
+    }
+}
+
+/* View Wrapper adjustments */
+@media (max-width: 1024px) {
+    .view-wrapper {
+        padding-top: 1rem !important;
+    }
+    
+    /* Dashboard: Resize large central icon on mobile */
+    #view-dashboard .ps-16 {
+        width: 3.5rem !important;
+        height: 3.5rem !important;
+    }
+    
+    #view-dashboard .pt-10 {
+        padding-top: 1.5rem !important;
+    }
+}
+
+/* Fix for overlapping input on very small heights */
+@media (max-height: 600px) {
+    #view-dashboard .pt-10 {
+        display: none !important;
+    }
+}
+
+/* History delete button visibility on mobile (no hover) */
+@media (max-width: 1024px) {
+    .delete-history-btn {
+        opacity: 1 !important;
+    }
+}

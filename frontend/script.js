@@ -24,6 +24,33 @@ async function apiFetch(url, body) {
     }
 }
 
+// ----------------------------------------------------
+// MOBILE SIDEBAR TOGGLE
+// ----------------------------------------------------
+function toggleSidebar() {
+    const sidebar = document.getElementById('main-sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    if (!sidebar || !overlay) return;
+
+    sidebar.classList.toggle('sidebar-open');
+    overlay.classList.toggle('active');
+    
+    // Manage scroll on the body to prevent background scrolling when sidebar is open
+    if (sidebar.classList.contains('sidebar-open')) {
+        document.body.style.overflow = 'hidden';
+    } else {
+        document.body.style.overflow = '';
+    }
+}
+
+function closeSidebar() {
+    const sidebar = document.getElementById('main-sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    if (sidebar) sidebar.classList.remove('sidebar-open');
+    if (overlay) overlay.classList.remove('active');
+    document.body.style.overflow = '';
+}
+
 /**
  * Tab Switching Logic
  */
@@ -485,11 +512,15 @@ function sendChatMessage(msg) {
             ${fileHtml}
             ${msg ? `<p class="text-white text-sm leading-relaxed">${msg}</p>` : ''}
         </div>
-        <div class="size-10 rounded-full bg-slate-800 overflow-hidden ring-2 ring-primary/20 flex-shrink-0 border border-slate-700">
-            <img class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBJ9sdm8_244EoCnYJGQNIq1QM6yLvnHim83dPKAjOVzgawj7Pr0T6G_PnXs4gabeWBvusAwjvuwPrIukX6r_jtK_MuDu9U7DcBUaZeSnXlS8zToT0IJJ8Mm6qKq5xZFczAaT4yJ2w5V7v0TVMmulw6UtioQ4QOr56kaACJb2h6kGZx7OnilP0j6nx1HFkd1bFYfU7Na802QLZb6e48__ceZq5x7VKYZHl5fg9R3IlqAWrqbz9nKpIROtuo-86-znip51rAdTL1sjw"/>
+        <div class="size-10 rounded-xl bg-slate-800 overflow-hidden ring-2 ring-primary/20 flex-shrink-0 border border-slate-700">
+            <img class="w-full h-full object-cover" src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix&backgroundColor=b6e3f4"/>
         </div>
     `;
     chatMessages.appendChild(userDiv);
+
+    // Hide welcome message on first chat
+    const welcomeMsg = document.getElementById('chat-welcome-message');
+    if (welcomeMsg) welcomeMsg.classList.add('hidden');
 
     // Capture state & clear input
     const submittedFile = attachedFile;
@@ -570,56 +601,106 @@ function sendChatMessage(msg) {
 }
 
 // ----------------------------------------------------
-// CHAT HISTORY & SIDEBAR FUNCTIONS
+// CHAT HISTORY & MODAL FUNCTIONS (Updated)
 // ----------------------------------------------------
 
-async function loadChatHistory() {
-    const container = document.getElementById('sidebar-chat-history');
+function openChatHistoryModal() {
+    console.log("[Nova] Opening Chat History Modal...");
+    const modal = document.getElementById('history-modal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        renderChatHistoryInModal();
+    } else {
+        console.error("[Nova] Modal element #history-modal not found!");
+    }
+}
+
+function closeChatHistoryModal() {
+    console.log("[Nova] Closing Chat History Modal...");
+    const modal = document.getElementById('history-modal');
+    if (modal) modal.classList.add('hidden');
+}
+
+async function renderChatHistoryInModal() {
+    const container = document.getElementById('modal-history-list');
     if (!container) return;
+    
+    // Show loading skeleton
+    container.innerHTML = `
+        <div class="flex flex-col items-center justify-center py-20 text-slate-500">
+            <div class="size-10 rounded-full border-2 border-slate-700 border-t-primary animate-spin mb-4"></div>
+            <p class="text-xs font-bold uppercase tracking-widest text-slate-400">Fetching History...</p>
+        </div>
+    `;
+
     try {
         const res = await fetch('/api/chat-history');
         const data = await res.json();
         const grouped = data.grouped || {};
         
-        container.innerHTML = '';
         let hasItems = false;
-        
-        // Check if there are any items
         for (const items of Object.values(grouped)) {
             if (items && items.length > 0) hasItems = true;
         }
 
         if(!hasItems) {
-            container.innerHTML = '<p class="text-xs text-slate-500 pl-2">No previous chats.</p>';
+            container.innerHTML = `
+                <div class="text-center py-20">
+                    <span class="material-symbols-outlined text-5xl text-slate-700 mb-2">history</span>
+                    <p class="text-slate-400 font-medium">No previous chats yet.</p>
+                </div>
+            `;
             return;
         }
 
         let html = '';
         for (const [groupTitle, items] of Object.entries(grouped)) {
             if (!items || items.length === 0) continue;
-            html += `<div class="mb-4">
-                <h4 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-2 mb-2">${groupTitle}</h4>
-                <div class="space-y-1">
+            html += `
+                <div class="mb-6">
+                    <h4 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-1 mb-3">${groupTitle}</h4>
+                    <div class="space-y-3">
             `;
-            html += items.map(item => `
-                <div class="group relative flex items-center justify-between px-3 py-2 rounded-lg hover:bg-white/5 cursor-pointer text-slate-400 hover:text-white transition-colors" onclick="loadOldConversation('${item.session_id}')">
-                    <span class="text-xs truncate pr-8 pointer-events-none w-full">${escapeHtml(item.snippet)}</span>
-                    <button onclick="deleteConversation(event, '${item.session_id}')" title="Delete Chat" class="absolute right-2 p-1.5 bg-slate-800 hover:bg-red-500/20 rounded transition-all text-slate-500 hover:text-red-400 z-10 flex items-center justify-center opacity-40 group-hover:opacity-100 shadow-sm border border-slate-700/50">
-                        <span class="material-symbols-outlined text-[14px]">delete</span>
-                    </button>
-                </div>
-            `).join('');
+            html += items.map(item => {
+                const isActive = item.session_id === window.currentSessionId;
+                return `
+                    <div class="history-item group ${isActive ? 'history-item-active' : ''}" onclick="loadOldConversation('${item.session_id}')">
+                        <div class="flex items-center gap-4">
+                            <div class="size-10 rounded-xl bg-slate-800 flex items-center justify-center shrink-0 border border-slate-700 group-hover:border-primary/30 transition-colors">
+                                <span class="material-symbols-outlined text-slate-500 group-hover:text-primary transition-colors">chat_bubble</span>
+                            </div>
+                            <div class="flex-1 min-w-0 pr-10">
+                                <p class="text-sm font-bold text-white truncate">${escapeHtml(item.snippet)}</p>
+                                <p class="text-[10px] text-slate-500 mt-1 uppercase font-bold tracking-tight">${new Date(item.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                            </div>
+                            <button onclick="deleteConversation(event, '${item.session_id}')" title="Delete Chat" class="delete-history-btn absolute right-4 p-2 bg-slate-800 hover:bg-red-500/20 rounded-xl transition-all text-slate-500 hover:text-red-400 flex items-center justify-center border border-slate-700">
+                                <span class="material-symbols-outlined text-[18px]">delete</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
             html += `</div></div>`;
         }
         container.innerHTML = html;
         
     } catch (e) {
-        console.error('Failed to load chat history:', e);
+        console.error('Failed to load modal history:', e);
+        container.innerHTML = '<p class="text-sm text-red-400 text-center py-10">Failed to load history.</p>';
+    }
+}
+
+// Keep the old function name for compatibility but redirect it to modal refresh if modal is open
+async function loadChatHistory() {
+    const modal = document.getElementById('history-modal');
+    if (modal && !modal.classList.contains('hidden')) {
+        renderChatHistoryInModal();
     }
 }
 
 async function loadOldConversation(session_id) {
     switchToTab('dashboard');
+    closeChatHistoryModal();
     try {
         const res = await fetch(`/api/chat-session/${session_id}`);
         const data = await res.json();
@@ -628,12 +709,16 @@ async function loadOldConversation(session_id) {
         window.currentSessionId = session_id;
         chatHistory = [];
         
+        // Hide welcome message when loading an old conversation
+        const welcomeMsg = document.getElementById('chat-welcome-message');
+        if (welcomeMsg) welcomeMsg.classList.add('hidden');
+
         const chatMessages = document.getElementById('chat-history');
         if (chatMessages) {
-            // retain only the first welcome message
-            const firstChild = chatMessages.firstElementChild;
+            // retain only the first welcome message (hidden by above logic)
             chatMessages.innerHTML = '';
-            if (firstChild) chatMessages.appendChild(firstChild);
+            const wm = document.getElementById('chat-welcome-message');
+            if (wm) chatMessages.appendChild(wm);
             
             data.messages.forEach(msg => {
                 chatHistory.push({ role: msg.role, content: msg.message });
@@ -647,8 +732,8 @@ async function loadOldConversation(session_id) {
                         <div class="glass-panel bg-primary/10 border-primary/20 p-5 rounded-2xl rounded-tr-sm max-w-[80%] text-left">
                             <p class="text-white text-sm leading-relaxed">${safeReply}</p>
                         </div>
-                        <div class="size-10 rounded-full bg-slate-800 overflow-hidden ring-2 ring-primary/20 flex-shrink-0 border border-slate-700">
-                            <img class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBJ9sdm8_244EoCnYJGQNIq1QM6yLvnHim83dPKAjOVzgawj7Pr0T6G_PnXs4gabeWBvusAwjvuwPrIukX6r_jtK_MuDu9U7DcBUaZeSnXlS8zToT0IJJ8Mm6qKq5xZFczAaT4yJ2w5V7v0TVMmulw6UtioQ4QOr56kaACJb2h6kGZx7OnilP0j6nx1HFkd1bFYfU7Na802QLZb6e48__ceZq5x7VKYZHl5fg9R3IlqAWrqbz9nKpIROtuo-86-znip51rAdTL1sjw"/>
+                        <div class="size-10 rounded-xl bg-slate-800 overflow-hidden ring-2 ring-primary/20 flex-shrink-0 border border-slate-700">
+                            <img class="w-full h-full object-cover" src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix&backgroundColor=b6e3f4"/>
                         </div>
                     `;
                 } else {
@@ -675,7 +760,7 @@ async function deleteConversation(event, session_id) {
     if(event) event.stopPropagation();
     try {
         await fetch(`/api/chat-session/${session_id}`, { method: 'DELETE' });
-        loadChatHistory();
+        renderChatHistoryInModal();
         if (session_id === window.currentSessionId) {
             startNewChat();
         }
@@ -722,7 +807,7 @@ function submitChat() {
 }
 
 function handleChatKeyPress(event) {
-    // In textarea: Shift+Enter → new line, Enter → send.
+    // In textarea: Shift+Enter → new line, Ctrl+Enter or Enter → send.
     if (event.key === 'Enter' && !event.shiftKey) {
         event.preventDefault(); // stop adding a new line
         submitChat();

@@ -25,7 +25,7 @@ def run_step2():
 def run_step3():
     print("### STEP 3 - Test Nova Connection ###")
     try:
-        client = boto3.client('bedrock-runtime', region_name='us-east-1')
+        client = boto3.client('bedrock-runtime', region_name='us-west-2')
         r = client.invoke_model(
             modelId='amazon.nova-pro-v1:0',
             body=json.dumps({'messages':[{'role':'user','content':[{'text':'Say hello in one line'}]}]})
