@@ -34,6 +34,15 @@
             -webkit-font-smoothing: antialiased;
             overflow-x: hidden;
             overflow-y: auto;
+            
+            /* Hide scrollbar */
+            -ms-overflow-style: none; 
+            scrollbar-width: none; 
+        }
+
+        /* Hide scrollbar for Chrome/Safari/Opera */
+        ::-webkit-scrollbar {
+            display: none;
         }
 
         /* ── Animated background ─────────────────────────────── */
@@ -234,6 +243,10 @@
         }
 
         @media (max-width: 480px) {
+            .page {
+                justify-content: flex-start;
+                padding-top: 3.5rem;
+            }
             .auth-card { padding: 2rem 1.25rem; border-radius: 18px; }
             .features  { gap: 1rem; flex-wrap: wrap; justify-content: center; }
         }
