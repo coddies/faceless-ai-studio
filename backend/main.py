@@ -1153,7 +1153,7 @@ if __name__ == "__main__":
     import uvicorn
     # Move to port 5106 to avoid common Windows conflicts like 8000/5000
     print("\n" + "="*50)
-    print("🚀 NOVA AI STUDIO IS STARTING!")
-    print("🔗 ACCESS THE FRONTEND AT: http://127.0.0.1:5106")
+    print(" >>> NOVA AI STUDIO IS STARTING! <<<")
+    print(" -> ACCESS THE FRONTEND AT: http://127.0.0.1:5107")
     print("="*50 + "\n")
-    uvicorn.run("main:app", host="127.0.0.1", port=5106, reload=False)
+    uvicorn.run("main:app", host="127.0.0.1", port=5107, reload=False)

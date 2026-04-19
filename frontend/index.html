@@ -12,6 +12,63 @@
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
         rel="stylesheet" />
     <link rel="stylesheet" href="./style.css">
+
+    <!-- ── Clerk Auth Guard ────────────────────────────────────
+         Replace YOUR_PUBLISHABLE_KEY with your actual key from
+         https://dashboard.clerk.com → API Keys -->
+    <script
+        crossorigin="anonymous"
+        data-clerk-publishable-key="pk_test_cXVpY2stZGFzc2llLTMyLmNsZXJrLmFjY291bnRzLmRldiQ"
+        src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@5/dist/clerk.browser.js"
+        type="text/javascript"
+    ></script>
+    <script id="clerk-auth-init">
+        (async function () {
+            if (!window.Clerk) {
+                console.warn('[Clerk] Script not loaded - running without auth.');
+                return;
+            }
+            try {
+                await window.Clerk.load();
+            } catch (e) {
+                console.warn('[Clerk] Could not load – running without auth.', e);
+                return;
+            }
+
+                // Not signed in → redirect to login
+                if (!window.Clerk.user) {
+                    window.location.replace('./login.html');
+                    return;
+                }
+
+                // ── Populate user card in sidebar ─────────────────
+                const user = window.Clerk.user;
+                const name  = user.fullName || user.firstName || user.emailAddresses?.[0]?.emailAddress || 'Nova User';
+                const email = user.emailAddresses?.[0]?.emailAddress || '';
+                const avatar = user.imageUrl ||
+                    `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(name)}&backgroundColor=transparent&primaryColor=256af4`;
+
+                const nameEl   = document.getElementById('clerk-user-name');
+                const emailEl  = document.getElementById('clerk-user-email');
+                const avatarEl = document.getElementById('clerk-user-avatar');
+                if (nameEl)  nameEl.textContent  = name;
+                if (emailEl) emailEl.textContent = email;
+                if (avatarEl) avatarEl.src = avatar;
+
+                // Expose sign-out globally so the button can call it
+                window.clerkSignOut = async () => {
+                    await window.Clerk.signOut();
+                    window.location.replace('./login.html');
+                };
+                
+                // Hide splash screen if successfully authenticated
+                const splash = document.getElementById('nova-splash-screen');
+                if (splash) {
+                    splash.classList.add('hidden');
+                    setTimeout(() => splash.remove(), 600);
+                }
+        })();
+    </script>
     <script id="tailwind-config">
         tailwind.config = {
             darkMode: "class",
@@ -42,8 +99,42 @@
     </script>
 </head>
 
-<body
-    class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased overflow-hidden">
+<body class="flex bg-background-dark text-white font-display overflow-hidden dark">
+
+    <!-- ── Ultra-Premium Nova Splash Screen ── -->
+    <div id="nova-splash-screen" style="position:fixed;inset:0;z-index:99999;background:#070b14;display:flex;align-items:center;justify-content:center;transition:opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.6s;">
+        <style>
+            .splash-content { display: flex; flex-direction: column; align-items: center; gap: 2rem; animation: pulse-glow 2s ease-in-out infinite alternate; }
+            .splash-logo {
+                width: 80px; height: 80px; border-radius: 24px; display: flex; align-items: center; justify-content: center; position: relative;
+                background: linear-gradient(135deg, #256af4, #d946ef); box-shadow: 0 0 40px rgba(37,106,244,0.4);
+            }
+            .splash-logo::after { content: ''; position: absolute; inset: -5px; border-radius: 28px; border: 2px solid rgba(217,70,239,0.5); animation: expand-ring 1.5s linear infinite; }
+            .splash-logo span { font-size: 2.5rem; color: #fff; }
+            .splash-text { text-align: center; }
+            .splash-title { font-size: 1.5rem; font-weight: 900; letter-spacing: 0.1em; color: #fff; margin-bottom: 0.5rem; }
+            .splash-subtitle { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.2em; color: #94a3b8; text-transform: uppercase; }
+            .splash-progress { width: 240px; height: 3px; background: rgba(255,255,255,0.05); border-radius: 6px; overflow: hidden; position: relative; }
+            .splash-progress-bar { position: absolute; top: 0; left: 0; bottom: 0; width: 50%; background: linear-gradient(90deg, #256af4, #d946ef); border-radius: 6px; animation: progress-scan 1.5s ease-in-out infinite; }
+            @keyframes expand-ring { 0% { transform: scale(0.8); opacity: 1; } 100% { transform: scale(1.4); opacity: 0; } }
+            @keyframes progress-scan { 0% { transform: translateX(-100%); width: 30%; } 50% { width: 50%; } 100% { transform: translateX(300%); width: 30%; } }
+            @keyframes pulse-glow { 0% { transform: scale(0.98); filter: drop-shadow(0 0 20px rgba(37,106,244,0.2)); } 100% { transform: scale(1); filter: drop-shadow(0 0 40px rgba(217,70,239,0.3)); } }
+            #nova-splash-screen.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+        </style>
+        <div class="splash-content">
+            <div class="splash-logo">
+                <span class="material-symbols-outlined">movie_filter</span>
+            </div>
+            <div class="splash-text">
+                <div class="splash-title">NOVA AI STUDIO</div>
+                <div class="splash-subtitle">INITIALIZING SECURE ENVIRONMENT...</div>
+            </div>
+            <div class="splash-progress">
+                <div class="splash-progress-bar"></div>
+            </div>
+        </div>
+    </div>
+
     <div class="flex min-h-screen">
 
         <!-- MOBILE HEADER -->
@@ -136,27 +227,27 @@
                 </button>
             </div>
 
-            <!-- Sidebar Bottom: Account Card -->
+            <!-- Sidebar Bottom: Dynamic Clerk Account Card -->
             <div class="p-4 pb-6 mt-auto shrink-0">
                 <div class="bg-slate-900/40 rounded-2xl p-4 border border-slate-800/40">
                     <div class="flex items-center gap-3 mb-3">
-                        <div
-                            class="size-10 rounded-full bg-slate-800 overflow-hidden ring-2 ring-primary/20 p-1 flex items-center justify-center">
-                            <!-- New Cool Bot/AI Avatar Image -->
-                            <img class="w-full h-full object-contain drop-shadow-[0_0_8px_rgba(37,106,244,0.8)]"
-                                data-alt="Nova AI Avatar"
+                        <div class="size-10 rounded-full bg-slate-800 overflow-hidden ring-2 ring-primary/20 p-1 flex items-center justify-center flex-shrink-0">
+                            <img id="clerk-user-avatar"
+                                class="w-full h-full object-contain drop-shadow-[0_0_8px_rgba(37,106,244,0.8)]"
+                                alt="User Avatar"
                                 src="https://api.dicebear.com/7.x/bottts/svg?seed=NovaAI4&backgroundColor=transparent&primaryColor=256af4" />
                         </div>
                         <div class="flex-1 min-w-0">
-                            <p class="text-sm font-semibold truncate text-white">Nova AI Pro</p>
-                            <span
-                                class="inline-flex items-center rounded-full bg-primary/20 px-2 py-0.5 text-[10px] font-bold text-primary tracking-wider uppercase">Active
-                            </span>
+                            <p id="clerk-user-name" class="text-sm font-semibold truncate text-white">Nova AI Pro</p>
+                            <p id="clerk-user-email" class="text-[10px] text-slate-500 truncate"></p>
                         </div>
                     </div>
-                    <button
-                        class="w-full py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-xs font-bold transition-all shadow-lg shadow-primary/20">
-                        Manage Plan
+                    <!-- Sign-out button -->
+                    <button id="clerk-sign-out-btn"
+                        onclick="typeof window.clerkSignOut === 'function' ? window.clerkSignOut() : (window.location.href = './login.html')"
+                        class="w-full py-2 flex items-center justify-center gap-2 bg-slate-800 hover:bg-red-500/15 border border-slate-700 hover:border-red-500/40 text-slate-400 hover:text-red-400 rounded-lg text-xs font-bold transition-all">
+                        <span class="material-symbols-outlined text-[15px]">logout</span>
+                        Sign Out
                     </button>
                 </div>
             </div>
